@@ -10,6 +10,7 @@ import com.tencent.supersonic.common.pojo.enums.EngineType;
 import com.tencent.supersonic.common.util.ContextUtils;
 import com.tencent.supersonic.headless.api.pojo.SchemaItem;
 import com.tencent.supersonic.headless.api.pojo.enums.AggOption;
+import com.tencent.supersonic.headless.api.pojo.enums.MetricDefineType;
 import com.tencent.supersonic.headless.api.pojo.response.DimSchemaResp;
 import com.tencent.supersonic.headless.api.pojo.response.MetricSchemaResp;
 import com.tencent.supersonic.headless.api.pojo.response.QueryState;
@@ -46,8 +47,11 @@ public class SqlQueryParser implements QueryParser {
         // build ontologyQuery
         SqlQuery sqlQuery = queryStatement.getSqlQuery();
         List<String> queryFields = SqlSelectHelper.getAllSelectFields(sqlQuery.getSql());
+        // special handle select *
+        queryFields = handleSelectAll(queryFields, queryStatement.getSemanticSchema());
         Set<String> queryAliases = SqlSelectHelper.getAliasFields(sqlQuery.getSql());
-        List<Pair<String, String>> ontologyMetricsDimensionsAndBizName = Collections.synchronizedList(new ArrayList<>());
+        List<Pair<String, String>> ontologyMetricsDimensionsAndBizName =
+                Collections.synchronizedList(new ArrayList<>());
         queryFields.removeAll(queryAliases);
         Ontology ontology = queryStatement.getOntology();
         OntologyQuery ontologyQuery = buildOntologyQuery(ontology, queryFields);
@@ -71,15 +75,12 @@ public class SqlQueryParser implements QueryParser {
             return;
         }
         queryStatement.setOntologyQuery(ontologyQuery);
-
         AggOption sqlQueryAggOption = getAggOption(sqlQuery.getSql(), ontologyQuery.getMetrics());
         ontologyQuery.setAggOption(sqlQueryAggOption);
-
         convertNameToBizName(queryStatement);
         // Solve the problem of SQL execution error when alias is Chinese
         aliasesWithBackticks(queryStatement);
         rewriteOrderBy(queryStatement);
-
         // fill sqlQuery
         String tableName = SqlSelectHelper.getTableName(sqlQuery.getSql());
         if (StringUtils.isEmpty(tableName)) {
@@ -94,7 +95,6 @@ public class SqlQueryParser implements QueryParser {
             sqlQuery.setSupportWith(false);
             sqlQuery.setWithAlias(false);
         }
-
         log.info("parse sqlQuery [{}] ", sqlQuery);
     }
 
@@ -107,6 +107,24 @@ public class SqlQueryParser implements QueryParser {
         }
         return true;
     }
+
+    private List<String> handleSelectAll(List<String> queryFields,
+            SemanticSchemaResp semanticSchemaResp) {
+        Set<String> tempSet = Sets.newHashSet(queryFields);
+        if (tempSet.contains(Constants.STAR)) {
+            tempSet.remove(Constants.STAR);
+            List<String> metrics = semanticSchemaResp.getMetrics().stream()
+                    .filter(metric -> metric.getMetricDefineType() == MetricDefineType.MEASURE)
+                    .map(MetricSchemaResp::getName).toList();
+            List<String> dimensions = semanticSchemaResp.getDimensions().stream()
+                    .map(DimSchemaResp::getName).toList();
+            tempSet.addAll(metrics);
+            tempSet.addAll(dimensions);
+        }
+        return new ArrayList<>(tempSet);
+    }
+
+
 
     private void aliasesWithBackticks(QueryStatement queryStatement) {
         String sql = queryStatement.getSqlQuery().getSql();

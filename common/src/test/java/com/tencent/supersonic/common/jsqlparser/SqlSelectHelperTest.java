@@ -161,7 +161,7 @@ class SqlSelectHelperTest {
         Assert.assertEquals(allFields.size(), 6);
 
         allFields = SqlSelectHelper.getAllSelectFields(
-                "SELECT * FROM CSpider  WHERE (评分 < (SELECT min(评分) FROM CSpider WHERE 语种 = '英文' ))"
+                "SELECT 评分 FROM CSpider  WHERE (评分 < (SELECT min(评分) FROM CSpider WHERE 语种 = '英文' ))"
                         + " AND 数据日期 = '2023-10-12'");
 
         Assert.assertEquals(allFields.size(), 3);

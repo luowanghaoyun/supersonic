@@ -1,10 +1,12 @@
 package com.tencent.supersonic.common.jsqlparser;
 
 import com.google.common.collect.Sets;
+import com.tencent.supersonic.common.pojo.Constants;
 import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.ExpressionVisitorAdapter;
 import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.SelectItem;
 
 import java.util.Set;
@@ -16,6 +18,11 @@ public class FieldAcquireVisitor extends ExpressionVisitorAdapter {
 
     public FieldAcquireVisitor(Set<String> fields) {
         this.fields = fields;
+    }
+
+    @Override
+    public void visit(AllColumns allColumns) {
+        fields.add(Constants.STAR);
     }
 
     @Override

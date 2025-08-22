@@ -17,6 +17,7 @@ public class Constants {
     public static final String PARENTHESES_END = ")";
     public static final String APOSTROPHE = "'";
     public static final String PERCENT_SIGN = "%";
+    public static final String STAR = "*";
     public static final String DESC_UPPER = "DESC";
     public static final String ASC_UPPER = "ASC";
     public static final String AND_UPPER = "AND";
